@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catering SFBB Digital Diary</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f4f6f8; color: #333; margin: 0; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        h1, h2 { color: #111; }
+        .section { border-bottom: 1px solid #eee; padding: 15px 0; }
+        .check-item { display: flex; align-items: center; margin-bottom: 10px; font-size: 1.1rem; }
+        .check-item input { margin-right: 12px; transform: scale(1.3); }
+        .form-group { margin-bottom: 12px; }
+        label { display: block; margin-bottom: 4px; font-weight: bold; }
+        input[type="text"], input[type="number"] { width: 100%; padding: 10px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem; }
+        button { background: #0070f3; color: white; border: none; padding: 12px; width: 100%; border-radius: 4px; font-size: 1rem; font-weight: bold; cursor: pointer; }
+        button:hover { background: #0051a8; }
+        ul { padding-left: 20px; }
+        li { margin-bottom: 6px; }
+        .warning { color: #d32f2f; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>SFBB Compliance Log</h1>
+    <p id="today-date" style="font-weight: bold; color: #666;"></p>
+
+    <div class="section">
+        <h2>Daily Verification</h2>
+        <div class="check-item">
+            <input type="checkbox" id="opening_checks" onchange="toggleCheck('opening_checks_done', this.checked)">
+            <label for="opening_checks">Opening Checks Completed</label>
+        </div>
+        <div class="check-item">
+            <input type="checkbox" id="closing_checks" onchange="toggleCheck('closing_checks_done', this.checked)">
+            <label for="closing_checks">Closing Checks Completed</label>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Temperature Monitoring</h2>
+        <form id="temp-form" onsubmit="logTemperature(event)">
+            <div class="form-group">
+                <label for="appliance">Appliance / Food Item</label>
+                <input type="text" id="appliance" placeholder="e.g., Main Trailer Fridge" required>
+            </div>
+            <div class="form-group">
+                <label for="temp">Recorded Temp (°C)</label>
+                <input type="number" step="0.1" id="temp" placeholder="e.g., 3.4" required>
+            </div>
+            <div class="form-group">
+                <label for="staff">Staff Initials</label>
+                <input type="text" id="staff" placeholder="e.g., JD" required>
+            </div>
+            <button type="submit">Save Reading</button>
+        </form>
+        <h3>Today's Readings</h3>
+        <ul id="temp-list"></ul>
+    </div>
+
+    <div class="section">
+        <h2>Manager Sign-off</h2>
+        <div class="form-group">
+            <label for="signature">Type Full Name to Sign</label>
+            <input type="text" id="signature" placeholder="Manager Signature">
+        </div>
+        <button onclick="signOffDay()">Complete & Archive Day</button>
+        <p id="sign-off-status" style="margin-top:10px; font-style:italic;"></p>
+    </div>
+</div>
+
+<script>
+    let currentDiaryId = null;
+
+    async function loadTodayData() {
+        const res = await fetch('/api/today');
+        const data = await res.json();
+        
+        currentDiaryId = data.diary.id;
+        document.getElementById('today-date').innerText = `Date: ${data.diary.date}`;
+        document.getElementById('opening_checks').checked = data.diary.opening_checks_done;
+        document.getElementById('closing_checks').checked = data.diary.closing_checks_done;
+        
+        if(data.diary.manager_signature) {
+            document.getElementById('signature').value = data.diary.manager_signature;
+            document.getElementById('sign-off-status').innerText = `Signed off by ${data.diary.manager_signature}`;
+        }
+
+        const tempList = document.getElementById('temp-list');
+        tempList.innerHTML = '';
+        data.temps.forEach(t => {
+            const li = document.createElement('li');
+            let alertText = "";
+            if (t.appliance_name.toLowerCase().includes("fridge") && t.temperature > 8) {
+                alertText = " <span class='warning'>[CRITICAL: Above Legal Limit 8°C]</span>";
+            }
+            li.innerHTML = `<strong>${t.appliance_name}</strong>: ${t.temperature}°C (Logged by ${t.checked_by})${alertText}`;
+            tempList.appendChild(li);
+        });
+    }
+
+    async function toggleCheck(field, value) {
+        await fetch('/api/update-checks', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: currentDiaryId, field, value })
+        });
+    }
+
+    async function logTemperature(e) {
+        e.preventDefault();
+        const appliance_name = document.getElementById('appliance').value;
+        const temperature = parseFloat(document.getElementById('temp').value);
+        const checked_by = document.getElementById('staff').value;
+
+        await fetch('/api/log-temp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ diary_id: currentDiaryId, appliance_name, temperature, checked_by })
+        });
+
+        document.getElementById('appliance').value = '';
+        document.getElementById('temp').value = '';
+        loadTodayData();
+    }
+
+    async function signOffDay() {
+        const signature = document.getElementById('signature').value;
+        if(!signature) return alert("Please type your signature name.");
+        
+        await fetch('/api/sign-off', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: currentDiaryId, signature })
+        });
+        loadTodayData();
+    }
+
+    loadTodayData();
+</script>
+</body>
+</html>
