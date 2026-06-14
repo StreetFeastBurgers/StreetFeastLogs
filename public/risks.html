@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Risk Assessment</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f4f6f8; color: #333; margin: 0; padding: 20px; }
+        .container { max-width: 1000px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); overflow-x: auto; }
+        h1 { color: #fd7e14; border-bottom: 2px solid #fd7e14; padding-bottom: 10px; }
+        button { background: #0070f3; color: white; border: none; padding: 10px 15px; border-radius: 4px; font-weight: bold; cursor: pointer; }
+        button:hover { background: #0051a8; }
+        .btn-back { background: #6c757d; margin-bottom: 20px; display: inline-block; padding: 10px 15px; color: white; text-decoration: none; border-radius: 4px; }
+        .btn-delete { background: #dc3545; padding: 5px 10px; font-size: 0.8rem; }
+        .btn-export { background: #28a745; width: 100%; padding: 15px; font-size: 1.1rem; margin-top: 20px; }
+        
+        .admin-panel { background: #fff5eb; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #fcd3b1; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 0.9rem; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; vertical-align: top; }
+        th { background-color: #f8f9fa; font-weight: bold; }
+        
+        .signoff-box { background: #f8f9fa; padding: 15px; border-radius: 8px; margin-top: 20px; border: 1px solid #ddd; display: flex; gap: 15px; align-items: flex-end;}
+        .form-group { flex: 1; }
+        label { display: block; font-weight: bold; font-size: 0.9rem; margin-bottom: 5px; }
+        input[type="text"], input[type="date"], textarea { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <a href="/" class="btn-back">⬅ Back to Daily Diary</a>
+    
+    <h1>Risk Assessment</h1>
+
+    <div class="admin-panel">
+        <h3 style="margin-top:0;">+ Add a New Hazard</h3>
+        <form onsubmit="addRisk(event)" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+            <div class="form-group"><label>Hazard</label><input type="text" id="r_hazard" required placeholder="e.g., Risk of Fire"></div>
+            <div class="form-group"><label>Person affected & Location</label><input type="text" id="r_person" required placeholder="e.g., Staff/Customers"></div>
+            <div class="form-group"><label>Risk Rating</label><input type="text" id="r_rating" required placeholder="e.g., E3 MEDIUM"></div>
+            <div class="form-group"><label>Notes/Planned Controls</label><input type="text" id="r_notes" placeholder="e.g., Keep area clear"></div>
+            <div class="form-group" style="grid-column: span 2;"><label>Risk Control Measures</label><textarea id="r_control" required rows="2" placeholder="e.g., Fire blanket / Extinguisher"></textarea></div>
+            <button type="submit" style="background: #fd7e14; grid-column: span 2;">Save Hazard to Assessment</button>
+        </form>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 15%;">Hazard</th>
+                <th style="width: 15%;">Affected & Loc</th>
+                <th style="width: 10%;">Rating</th>
+                <th style="width: 25%;">Control Measures</th>
+                <th style="width: 25%;">Notes/Controls</th>
+                <th style="width: 10%;">Action</th>
+            </tr>
+        </thead>
+        <tbody id="risk-body"></tbody>
+    </table>
+
+    <div class="signoff-box">
+        <div class="form-group"><label>Review Date</label><input type="date" id="rev_date" required></div>
+        <div class="form-group"><label>Reviewed By (Name)</label><input type="text" id="rev_by" required></div>
+        <button onclick="saveSignOff()" style="background: #17a2b8;">Save Sign-off</button>
+    </div>
+    <p id="current-signoff" style="font-style: italic; color: #666; font-size: 0.9rem;"></p>
+
+    <button class="btn-export" onclick="window.location.href='/api/export-risk-pdf'">📄 Download Risk Assessment PDF</button>
+</div>
+
+<script>
+    async function loadRisks() {
+        const res = await fetch('/api/risks');
+        const data = await res.json();
+        const tbody = document.getElementById('risk-body');
+        tbody.innerHTML = '';
+        
+        data.forEach(d => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><strong>${d.hazard}</strong></td>
+                <td>${d.person_affected}</td>
+                <td>${d.risk_rating}</td>
+                <td>${d.control_measures}</td>
+                <td>${d.notes || ''}</td>
+                <td><button class="btn-delete" onclick="deleteRisk(${d.id})">Del</button></td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        // Load Signoff
+        const sigRes = await fetch('/api/risk-signoff');
+        const sigData = await sigRes.json();
+        if(sigData) {
+            document.getElementById('current-signoff').innerText = `Current Sign-off: ${sigData.reviewed_by} on ${sigData.review_date}`;
+        }
+    }
+
+    async function addRisk(e) {
+        e.preventDefault();
+        const payload = {
+            hazard: document.getElementById('r_hazard').value,
+            person_affected: document.getElementById('r_person').value,
+            risk_rating: document.getElementById('r_rating').value,
+            control_measures: document.getElementById('r_control').value,
+            notes: document.getElementById('r_notes').value
+        };
+        await fetch('/api/risks', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        document.querySelector('form').reset();
+        loadRisks();
+    }
+
+    async function deleteRisk(id) {
+        if(confirm("Delete this hazard?")) {
+            await fetch(`/api/risks/${id}`, { method: 'DELETE' });
+            loadRisks();
+        }
+    }
+
+    async function saveSignOff() {
+        const payload = { review_date: document.getElementById('rev_date').value, reviewed_by: document.getElementById('rev_by').value };
+        if(!payload.review_date || !payload.reviewed_by) return alert("Fill in both date and name.");
+        await fetch('/api/risk-signoff', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        alert("Sign-off saved!");
+        loadRisks();
+    }
+
+    loadRisks();
+</script>
+</body>
+</html>
