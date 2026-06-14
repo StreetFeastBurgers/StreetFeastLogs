@@ -16,12 +16,17 @@
         input[type="text"], input[type="number"], select, textarea { width: 100%; padding: 10px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem; }
         button { background: #0070f3; color: white; border: none; padding: 12px; width: 100%; border-radius: 4px; font-size: 1rem; font-weight: bold; cursor: pointer; }
         button:hover { background: #0051a8; }
-        .btn-nav { background: #6f42c1; margin-bottom: 15px; }
+        
+        /* Navigation Buttons */
+        .btn-nav { background: #6f42c1; margin-bottom: 10px; }
         .btn-nav:hover { background: #59339d; }
-        .btn-allergen { background: #e83e8c; margin-bottom: 15px; }
+        .btn-allergen { background: #e83e8c; margin-bottom: 10px; }
         .btn-allergen:hover { background: #c23375; }
-        .btn-risk { background: #fd7e14; margin-bottom: 15px; }
+        .btn-risk { background: #fd7e14; margin-bottom: 10px; }
         .btn-risk:hover { background: #e06a0b; }
+        .btn-doc { background: #17a2b8; margin-bottom: 20px; }
+        .btn-doc:hover { background: #117a8b; }
+        
         .btn-export { background: #28a745; margin-top: 10px; }
         .btn-export:hover { background: #218838; }
         .btn-secondary { background: #6c757d; margin-top: 10px; }
@@ -38,6 +43,7 @@
     <button class="btn-nav" onclick="window.location.href='/cleaning.html'">📋 View Cleaning Schedule</button>
     <button class="btn-allergen" onclick="window.location.href='/allergens.html'">🥜 View Allergen Matrix</button>
     <button class="btn-risk" onclick="window.location.href='/risks.html'">⚠️ View Risk Assessment</button>
+    <button class="btn-doc" onclick="window.location.href='/documents.html'">📁 View Business Documents</button>
     
     <p id="today-date" style="font-weight: bold; color: #666;"></p>
 
