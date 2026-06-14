@@ -124,6 +124,21 @@ app.get('/api/export-pdf', async (req, res) => {
     doc.end();
 });
 
+// Fetch the Cleaning Schedule
+app.get('/api/cleaning', async (req, res) => {
+    const { data, error } = await supabase.from('cleaning_schedule').select('*').order('id', { ascending: true });
+    if (error) return res.status(500).json({ error: error.message });
+    res.json(data || []);
+});
+
+// Add a new item to the Cleaning Schedule
+app.post('/api/cleaning', async (req, res) => {
+    const { item_name, frequency, precautions, method } = req.body;
+    const { data, error } = await supabase.from('cleaning_schedule').insert([{ item_name, frequency, precautions, method }]).select().single();
+    if (error) return res.status(500).json({ error: error.message });
+    res.json(data);
+});
+
 app.listen(PORT, () => {
     console.log(`SFBB Compliance app running on port ${PORT}`);
 });
