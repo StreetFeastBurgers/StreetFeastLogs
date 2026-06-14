@@ -219,6 +219,89 @@ app.get('/api/export-allergen-pdf', async (req, res) => {
     doc.end();
 });
 
+// --- RISK ASSESSMENT ENDPOINTS ---
+app.get('/api/risks', async (req, res) => {
+    const { data, error } = await supabase.from('risk_assessment').select('*').order('id', { ascending: true });
+    if (error) return res.status(500).json({ error: error.message }); res.json(data || []);
+});
+
+app.post('/api/risks', async (req, res) => {
+    const { data, error } = await supabase.from('risk_assessment').insert([req.body]).select().single();
+    if (error) return res.status(500).json({ error: error.message }); res.json(data);
+});
+
+app.delete('/api/risks/:id', async (req, res) => {
+    const { error } = await supabase.from('risk_assessment').delete().eq('id', req.params.id);
+    if (error) return res.status(500).json({ error: error.message }); res.json({ success: true });
+});
+
+app.get('/api/risk-signoff', async (req, res) => {
+    const { data, error } = await supabase.from('risk_signoff').select('*').order('created_at', { ascending: false }).limit(1).single();
+    res.json(data || null);
+});
+
+app.post('/api/risk-signoff', async (req, res) => {
+    const { reviewed_by, review_date } = req.body;
+    const { data, error } = await supabase.from('risk_signoff').insert([{ reviewed_by, review_date }]).select().single();
+    if (error) return res.status(500).json({ error: error.message }); res.json(data);
+});
+
+// Full Risk Assessment PDF Export (Landscape)
+app.get('/api/export-risk-pdf', async (req, res) => {
+    const { data: risks } = await supabase.from('risk_assessment').select('*').order('id', { ascending: true });
+    const { data: signoff } = await supabase.from('risk_signoff').select('*').order('created_at', { ascending: false }).limit(1).single();
+
+    const doc = new PDFDocument({ margin: 30, size: 'A4', layout: 'landscape' });
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', 'attachment; filename=StreetFeast_Risk_Assessment.pdf');
+    doc.pipe(res);
+
+    doc.fontSize(18).font('Helvetica-Bold').text('Risk Assessment Template - Street Feast', { align: 'left' });
+    doc.moveDown(1.5);
+
+    const startX = 30;
+    let currentY = doc.y;
+    
+    // Draw Headers
+    doc.fontSize(10).font('Helvetica-Bold');
+    doc.text('Task or Issue/Hazard', startX, currentY, { width: 120 });
+    doc.text('Person affected & Location', startX + 130, currentY, { width: 120 });
+    doc.text('Risk Rating', startX + 260, currentY, { width: 70 });
+    doc.text('Risk Control Measures', startX + 340, currentY, { width: 180 });
+    doc.text('By Who & When', startX + 530, currentY, { width: 100 });
+    doc.text('Notes/Controls', startX + 640, currentY, { width: 150 });
+    
+    currentY += 25;
+    doc.moveTo(startX, currentY).lineTo(810, currentY).stroke('#00a896');
+    currentY += 15;
+
+    // Draw Rows
+    doc.font('Helvetica');
+    if(risks) {
+        risks.forEach(risk => {
+            const rowHeight = Math.max(
+                doc.heightOfString(risk.hazard, { width: 120 }),
+                doc.heightOfString(risk.control_measures, { width: 180 })
+            );
+
+            doc.text(risk.hazard, startX, currentY, { width: 120 });
+            doc.text(risk.person_affected, startX + 130, currentY, { width: 120 });
+            doc.text(risk.risk_rating, startX + 260, currentY, { width: 70 });
+            doc.text(risk.control_measures, startX + 340, currentY, { width: 180 });
+            doc.text(signoff ? `${signoff.reviewed_by}\n${signoff.review_date}` : 'Not signed', startX + 530, currentY, { width: 100 });
+            doc.text(risk.notes || '', startX + 640, currentY, { width: 150 });
+            
+            currentY += rowHeight + 15;
+            doc.moveTo(startX, currentY).lineTo(810, currentY).stroke('#dddddd');
+            currentY += 15;
+
+            if (currentY > 480) { doc.addPage(); currentY = 40; }
+        });
+    }
+
+    doc.end();
+});
+
 app.listen(PORT, () => {
     console.log(`SFBB Compliance app running on port ${PORT}`);
 });
