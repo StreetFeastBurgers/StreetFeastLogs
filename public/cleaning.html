@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cleaning Schedule</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f4f6f8; color: #333; margin: 0; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        h1, h2 { color: #00a896; text-transform: uppercase; border-bottom: 2px dashed #00a896; padding-bottom: 10px; }
+        button { background: #0070f3; color: white; border: none; padding: 10px; border-radius: 4px; font-weight: bold; cursor: pointer; }
+        button:hover { background: #0051a8; }
+        .btn-back { background: #6c757d; margin-bottom: 20px; display: inline-block; padding: 10px 15px; color: white; text-decoration: none; border-radius: 4px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 0.95rem; }
+        th, td { border: 1px solid #00a896; padding: 10px; text-align: left; vertical-align: top; }
+        th { background-color: #e0f7fa; color: #00665c; }
+        
+        /* Admin Form Styles */
+        .admin-panel { background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #ddd; }
+        .form-group { margin-bottom: 10px; }
+        label { display: block; font-weight: bold; margin-bottom: 4px; font-size: 0.9rem; }
+        input[type="text"], textarea { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <a href="/" class="btn-back">⬅ Back to Daily Diary</a>
+    
+    <h1>Cleaning Schedule</h1>
+    <p style="font-weight: bold; color: #00a896;">FILL IN DETAILS OF ALL THE ITEMS YOU CLEAN</p>
+
+    <!-- Admin Form to Add New Items -->
+    <div class="admin-panel">
+        <h3 style="margin-top:0;">+ Add New Cleaning Task (Manager Only)</h3>
+        <form id="add-cleaning-form" onsubmit="addCleaningItem(event)">
+            <div class="form-group"><label>Item Name</label><input type="text" id="c_item" required placeholder="e.g., Prep Counter"></div>
+            <div class="form-group"><label>Frequency</label><input type="text" id="c_freq" required placeholder="e.g., After use / Every shift"></div>
+            <div class="form-group"><label>Precautions</label><input type="text" id="c_prec" placeholder="e.g., Wear gloves"></div>
+            <div class="form-group"><label>Method of Cleaning</label><textarea id="c_method" rows="3" required placeholder="1. Remove debris... 2. Wipe with sanitiser..."></textarea></div>
+            <button type="submit" style="background: #28a745;">Save to Schedule</button>
+        </form>
+    </div>
+
+    <!-- The Schedule Table -->
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 20%;">Item</th>
+                <th style="width: 15%;">Frequency</th>
+                <th style="width: 20%;">Precautions</th>
+                <th style="width: 45%;">Method of Cleaning</th>
+            </tr>
+        </thead>
+        <tbody id="schedule-body">
+            <!-- Data will load here -->
+        </tbody>
+    </table>
+</div>
+
+<script>
+    async function loadSchedule() {
+        const res = await fetch('/api/cleaning');
+        const data = await res.json();
+        const tbody = document.getElementById('schedule-body');
+        tbody.innerHTML = '';
+        
+        data.forEach(item => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><strong>${item.item_name}</strong></td>
+                <td>${item.frequency}</td>
+                <td>${item.precautions || 'None'}</td>
+                <td style="white-space: pre-line;">${item.method}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    async function addCleaningItem(e) {
+        e.preventDefault();
+        const payload = {
+            item_name: document.getElementById('c_item').value,
+            frequency: document.getElementById('c_freq').value,
+            precautions: document.getElementById('c_prec').value,
+            method: document.getElementById('c_method').value
+        };
+
+        const res = await fetch('/api/cleaning', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if(res.ok) {
+            document.getElementById('add-cleaning-form').reset();
+            loadSchedule();
+        } else {
+            alert("Error saving item.");
+        }
+    }
+
+    loadSchedule();
+</script>
+</body>
+</html>
