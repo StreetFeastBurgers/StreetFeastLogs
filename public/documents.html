@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Business Documents</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f4f6f8; color: #333; margin: 0; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        h1 { color: #17a2b8; border-bottom: 2px solid #17a2b8; padding-bottom: 10px; }
+        button { background: #0070f3; color: white; border: none; padding: 12px; border-radius: 4px; font-weight: bold; cursor: pointer; width: 100%; }
+        button:hover { background: #0051a8; }
+        .btn-back { background: #6c757d; margin-bottom: 20px; display: inline-block; padding: 10px 15px; color: white; text-decoration: none; border-radius: 4px; }
+        .btn-delete { background: #dc3545; padding: 8px; width: auto; margin-top: 10px; }
+        .btn-export { background: #28a745; font-size: 1.1rem; margin-top: 20px; }
+        
+        .admin-panel { background: #e0fbfc; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #98c1d9; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; font-weight: bold; margin-bottom: 5px; }
+        input[type="text"], input[type="file"] { width: 100%; padding: 10px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; background: white; }
+        
+        .doc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; margin-top: 20px; }
+        .doc-card { border: 1px solid #ddd; padding: 15px; border-radius: 8px; background: #fff; text-align: center; }
+        .doc-card h3 { margin-top: 0; color: #333; font-size: 1.1rem; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <a href="/" class="btn-back">⬅ Back to Daily Diary</a>
+    
+    <h1>Business Certificates & Documents</h1>
+
+    <div class="admin-panel">
+        <h3 style="margin-top:0;">+ Upload New Document</h3>
+        <form onsubmit="uploadDocument(event)">
+            <div class="form-group">
+                <label>Document Title</label>
+                <input type="text" id="doc_title" required placeholder="e.g., Gas Safety Cert 2026">
+            </div>
+            <div class="form-group">
+                <label>Take Photo or Choose Image</label>
+                <input type="file" id="doc_file" accept="image/*" required>
+            </div>
+            <button type="submit" id="upload_btn" style="background: #17a2b8;">Save Document</button>
+        </form>
+    </div>
+
+    <h2>Saved Documents</h2>
+    <div class="doc-grid" id="doc-list">
+        </div>
+
+    <button class="btn-export" onclick="window.location.href='/api/export-docs-pdf'">📄 Download All Documents as PDF</button>
+</div>
+
+<script>
+    async function loadDocuments() {
+        const res = await fetch('/api/documents');
+        const docs = await res.json();
+        const list = document.getElementById('doc-list');
+        list.innerHTML = '';
+        
+        if (docs.length === 0) {
+            list.innerHTML = '<p>No documents saved yet.</p>';
+            return;
+        }
+
+        docs.forEach(d => {
+            const dateStr = new Date(d.created_at).toLocaleDateString();
+            const card = document.createElement('div');
+            card.className = 'doc-card';
+            card.innerHTML = `
+                <h3>${d.title}</h3>
+                <p style="font-size: 0.8rem; color: #666;">Uploaded: ${dateStr}</p>
+                <button class="btn-delete" onclick="deleteDocument(${d.id})">Delete</button>
+            `;
+            list.appendChild(card);
+        });
+    }
+
+    async function uploadDocument(e) {
+        e.preventDefault();
+        const btn = document.getElementById('upload_btn');
+        const titleInput = document.getElementById('doc_title');
+        const fileInput = document.getElementById('doc_file');
+        const file = fileInput.files[0];
+
+        if (!file) return alert("Please select an image.");
+        
+        btn.innerText = "Uploading... Please wait.";
+        btn.disabled = true;
+
+        // Convert image file to a Base64 string so it can be saved in the database
+        const reader = new FileReader();
+        reader.onloadend = async function() {
+            const base64String = reader.result;
+            
+            const payload = {
+                title: titleInput.value,
+                image_data: base64String
+            };
+
+            const res = await fetch('/api/documents', { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify(payload) 
+            });
+
+            if(res.ok) {
+                titleInput.value = '';
+                fileInput.value = '';
+                loadDocuments();
+            } else {
+                alert("Error saving document. It might be too large.");
+            }
+            
+            btn.innerText = "Save Document";
+            btn.disabled = false;
+        };
+        reader.readAsDataURL(file);
+    }
+
+    async function deleteDocument(id) {
+        if(confirm("Permanently delete this document?")) {
+            await fetch(`/api/documents/${id}`, { method: 'DELETE' });
+            loadDocuments();
+        }
+    }
+
+    loadDocuments();
+</script>
+</body>
+</html>
