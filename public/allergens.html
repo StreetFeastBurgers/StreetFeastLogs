@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Allergen Matrix</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f4f6f8; color: #333; margin: 0; padding: 20px; }
+        .container { max-width: 1000px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); overflow-x: auto; }
+        h1 { color: #e83e8c; border-bottom: 2px solid #e83e8c; padding-bottom: 10px; }
+        button { background: #0070f3; color: white; border: none; padding: 10px 15px; border-radius: 4px; font-weight: bold; cursor: pointer; }
+        button:hover { background: #0051a8; }
+        .btn-back { background: #6c757d; margin-bottom: 20px; display: inline-block; padding: 10px 15px; color: white; text-decoration: none; border-radius: 4px; }
+        .btn-delete { background: #dc3545; padding: 5px 10px; font-size: 0.8rem; }
+        .btn-export { background: #28a745; width: 100%; padding: 15px; font-size: 1.1rem; margin-top: 20px; }
+        
+        .admin-panel { background: #fff0f6; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #f8bada; }
+        .grid-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; margin: 15px 0; }
+        .grid-item { display: flex; align-items: center; }
+        .grid-item input { margin-right: 8px; transform: scale(1.3); }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 0.85rem; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+        th { background-color: #f8f9fa; font-size: 0.8rem; }
+        td:first-child { text-align: left; font-weight: bold; }
+        
+        .signoff-box { background: #f8f9fa; padding: 15px; border-radius: 8px; margin-top: 20px; border: 1px solid #ddd; display: flex; gap: 15px; align-items: flex-end;}
+        .form-group { flex: 1; }
+        label { display: block; font-weight: bold; font-size: 0.9rem; margin-bottom: 5px; }
+        input[type="text"], input[type="date"] { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <a href="/" class="btn-back">⬅ Back to Daily Diary</a>
+    
+    <h1>Allergen Matrix</h1>
+
+    <!-- Admin Form -->
+    <div class="admin-panel">
+        <h3 style="margin-top:0;">+ Add a New Dish</h3>
+        <form onsubmit="addDish(event)">
+            <label>Dish Name:</label>
+            <input type="text" id="dish_name" required placeholder="e.g., Smash Burger" style="margin-bottom: 10px;">
+            
+            <label>Select Allergens Present:</label>
+            <div class="grid-container">
+                <div class="grid-item"><input type="checkbox" id="a_celery"> Celery</div>
+                <div class="grid-item"><input type="checkbox" id="a_cereals"> Cereals/Gluten</div>
+                <div class="grid-item"><input type="checkbox" id="a_crustaceans"> Crustaceans</div>
+                <div class="grid-item"><input type="checkbox" id="a_eggs"> Eggs</div>
+                <div class="grid-item"><input type="checkbox" id="a_fish"> Fish</div>
+                <div class="grid-item"><input type="checkbox" id="a_lupin"> Lupin</div>
+                <div class="grid-item"><input type="checkbox" id="a_milk"> Milk</div>
+                <div class="grid-item"><input type="checkbox" id="a_molluscs"> Molluscs</div>
+                <div class="grid-item"><input type="checkbox" id="a_mustard"> Mustard</div>
+                <div class="grid-item"><input type="checkbox" id="a_nuts"> Nuts (Tree)</div>
+                <div class="grid-item"><input type="checkbox" id="a_peanuts"> Peanuts</div>
+                <div class="grid-item"><input type="checkbox" id="a_sesame"> Sesame</div>
+                <div class="grid-item"><input type="checkbox" id="a_soya"> Soya</div>
+                <div class="grid-item"><input type="checkbox" id="a_sulphur"> Sulphur Diox.</div>
+            </div>
+            <button type="submit" style="background: #e83e8c;">Save Dish</button>
+        </form>
+    </div>
+
+    <!-- Table -->
+    <table>
+        <thead>
+            <tr>
+                <th>Dish Name</th>
+                <th>Celery</th><th>Gluten</th><th>Crust.</th><th>Eggs</th><th>Fish</th><th>Lupin</th><th>Milk</th><th>Molluscs</th><th>Mustard</th><th>Nuts</th><th>Peanuts</th><th>Sesame</th><th>Soya</th><th>Sulphur</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody id="allergen-body"></tbody>
+    </table>
+
+    <!-- Sign Off -->
+    <div class="signoff-box">
+        <div class="form-group">
+            <label>Review Date</label>
+            <input type="date" id="rev_date" required>
+        </div>
+        <div class="form-group">
+            <label>Reviewed By (Name)</label>
+            <input type="text" id="rev_by" required>
+        </div>
+        <button onclick="saveSignOff()" style="background: #17a2b8;">Save Sign-off</button>
+    </div>
+    <p id="current-signoff" style="font-style: italic; color: #666; font-size: 0.9rem;"></p>
+
+    <!-- Export -->
+    <button class="btn-export" onclick="window.location.href='/api/export-allergen-pdf'">📄 Download Allergen PDF (EHO Ready)</button>
+</div>
+
+<script>
+    async function loadAllergens() {
+        const res = await fetch('/api/allergens');
+        const data = await res.json();
+        const tbody = document.getElementById('allergen-body');
+        tbody.innerHTML = '';
+        
+        data.forEach(d => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${d.dish_name}</td>
+                <td>${d.celery ? '✔️' : ''}</td><td>${d.cereals ? '✔️' : ''}</td><td>${d.crustaceans ? '✔️' : ''}</td>
+                <td>${d.eggs ? '✔️' : ''}</td><td>${d.fish ? '✔️' : ''}</td><td>${d.lupin ? '✔️' : ''}</td>
+                <td>${d.milk ? '✔️' : ''}</td><td>${d.molluscs ? '✔️' : ''}</td><td>${d.mustard ? '✔️' : ''}</td>
+                <td>${d.nuts ? '✔️' : ''}</td><td>${d.peanuts ? '✔️' : ''}</td><td>${d.sesame ? '✔️' : ''}</td>
+                <td>${d.soya ? '✔️' : ''}</td><td>${d.sulphur ? '✔️' : ''}</td>
+                <td><button class="btn-delete" onclick="deleteDish(${d.id})">Del</button></td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        // Load Signoff
+        const sigRes = await fetch('/api/allergen-signoff');
+        const sigData = await sigRes.json();
+        if(sigData) {
+            document.getElementById('current-signoff').innerText = `Current Sign-off: ${sigData.reviewed_by} on ${sigData.review_date}`;
+        }
+    }
+
+    async function addDish(e) {
+        e.preventDefault();
+        const payload = {
+            dish_name: document.getElementById('dish_name').value,
+            celery: document.getElementById('a_celery').checked,
+            cereals: document.getElementById('a_cereals').checked,
+            crustaceans: document.getElementById('a_crustaceans').checked,
+            eggs: document.getElementById('a_eggs').checked,
+            fish: document.getElementById('a_fish').checked,
+            lupin: document.getElementById('a_lupin').checked,
+            milk: document.getElementById('a_milk').checked,
+            molluscs: document.getElementById('a_molluscs').checked,
+            mustard: document.getElementById('a_mustard').checked,
+            nuts: document.getElementById('a_nuts').checked,
+            peanuts: document.getElementById('a_peanuts').checked,
+            sesame: document.getElementById('a_sesame').checked,
+            soya: document.getElementById('a_soya').checked,
+            sulphur: document.getElementById('a_sulphur').checked
+        };
+        await fetch('/api/allergens', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        document.querySelector('form').reset();
+        loadAllergens();
+    }
+
+    async function deleteDish(id) {
+        if(confirm("Delete this dish?")) {
+            await fetch(`/api/allergens/${id}`, { method: 'DELETE' });
+            loadAllergens();
+        }
+    }
+
+    async function saveSignOff() {
+        const payload = {
+            review_date: document.getElementById('rev_date').value,
+            reviewed_by: document.getElementById('rev_by').value
+        };
+        if(!payload.review_date || !payload.reviewed_by) return alert("Fill in both date and name.");
+        await fetch('/api/allergen-signoff', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        alert("Sign-off saved!");
+        loadAllergens();
+    }
+
+    loadAllergens();
+</script>
+</body>
+</html>
