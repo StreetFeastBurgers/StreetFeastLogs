@@ -3,22 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Catering SFBB Digital Diary</title>
+    <title>Street Feast SFBB Diary</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f4f6f8; color: #333; margin: 0; padding: 20px; }
         .container { max-width: 600px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-        h1, h2 { color: #111; }
+        h1, h2, h3 { color: #111; }
         .section { border-bottom: 1px solid #eee; padding: 15px 0; }
         .check-item { display: flex; align-items: center; margin-bottom: 10px; font-size: 1.1rem; }
         .check-item input { margin-right: 12px; transform: scale(1.3); }
         .form-group { margin-bottom: 12px; }
-        label { display: block; margin-bottom: 4px; font-weight: bold; }
-        input[type="text"], input[type="number"] { width: 100%; padding: 10px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem; }
+        label { display: block; margin-bottom: 4px; font-weight: bold; font-size: 0.9rem; }
+        input[type="text"], input[type="number"], select, textarea { width: 100%; padding: 10px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem; }
         button { background: #0070f3; color: white; border: none; padding: 12px; width: 100%; border-radius: 4px; font-size: 1rem; font-weight: bold; cursor: pointer; }
         button:hover { background: #0051a8; }
+        .btn-export { background: #28a745; margin-top: 10px; }
+        .btn-export:hover { background: #218838; }
+        .btn-secondary { background: #6c757d; margin-top: 10px; }
+        .btn-secondary:hover { background: #5a6268; }
+        .hidden { display: none; }
+        .review-box { background: #e0f7fa; padding: 15px; border-radius: 8px; margin-top: 15px; }
         ul { padding-left: 20px; }
-        li { margin-bottom: 6px; }
-        .warning { color: #d32f2f; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -27,47 +31,77 @@
     <h1>SFBB Compliance Log</h1>
     <p id="today-date" style="font-weight: bold; color: #666;"></p>
 
+    <!-- Daily Verification -->
     <div class="section">
         <h2>Daily Verification</h2>
-        <div class="check-item">
-            <input type="checkbox" id="opening_checks" onchange="toggleCheck('opening_checks_done', this.checked)">
-            <label for="opening_checks">Opening Checks Completed</label>
-        </div>
-        <div class="check-item">
-            <input type="checkbox" id="closing_checks" onchange="toggleCheck('closing_checks_done', this.checked)">
-            <label for="closing_checks">Closing Checks Completed</label>
-        </div>
+        <div class="check-item"><input type="checkbox" id="opening_checks" onchange="toggleCheck('opening_checks_done', this.checked)"><label for="opening_checks">Opening Checks Completed</label></div>
+        <div class="check-item"><input type="checkbox" id="closing_checks" onchange="toggleCheck('closing_checks_done', this.checked)"><label for="closing_checks">Closing Checks Completed</label></div>
     </div>
 
+    <!-- Temperature Logging -->
     <div class="section">
         <h2>Temperature Monitoring</h2>
         <form id="temp-form" onsubmit="logTemperature(event)">
-            <div class="form-group">
-                <label for="appliance">Appliance / Food Item</label>
-                <input type="text" id="appliance" placeholder="e.g., Main Trailer Fridge" required>
-            </div>
-            <div class="form-group">
-                <label for="temp">Recorded Temp (°C)</label>
-                <input type="number" step="0.1" id="temp" placeholder="e.g., 3.4" required>
-            </div>
-            <div class="form-group">
-                <label for="staff">Staff Initials</label>
-                <input type="text" id="staff" placeholder="e.g., JD" required>
-            </div>
+            <div class="form-group"><label>Appliance / Food Item</label><input type="text" id="appliance" required></div>
+            <div class="form-group"><label>Recorded Temp (°C)</label><input type="number" step="0.1" id="temp" required></div>
+            <div class="form-group"><label>Staff Initials</label><input type="text" id="staff" required></div>
             <button type="submit">Save Reading</button>
         </form>
         <h3>Today's Readings</h3>
         <ul id="temp-list"></ul>
     </div>
 
+    <!-- Daily Sign-off -->
     <div class="section">
-        <h2>Manager Sign-off</h2>
-        <div class="form-group">
-            <label for="signature">Type Full Name to Sign</label>
-            <input type="text" id="signature" placeholder="Manager Signature">
-        </div>
+        <h2>Daily Sign-off</h2>
+        <div class="form-group"><input type="text" id="signature" placeholder="Manager Signature"></div>
         <button onclick="signOffDay()">Complete & Archive Day</button>
-        <p id="sign-off-status" style="margin-top:10px; font-style:italic;"></p>
+    </div>
+
+    <!-- 4-Weekly Review Section -->
+    <div class="section">
+        <h2>Management & Review</h2>
+        <button class="btn-secondary" onclick="document.getElementById('review-form').classList.toggle('hidden')">Open 4-Weekly Review Form</button>
+        
+        <div id="review-form" class="review-box hidden">
+            <h3>4-Weekly Review Check</h3>
+            <p style="font-size: 0.8rem; margin-bottom: 15px;">Review the methods used in your business to check they are up to date.</p>
+            
+            <form onsubmit="submitReview(event)">
+                <div class="form-group">
+                    <label>Serious problem or same thing went wrong 3 times?</label>
+                    <select id="rev_problem"><option value="false">No</option><option value="true">Yes</option></select>
+                </div>
+                <div class="form-group"><label>Details:</label><input type="text" id="rev_prob_det"></div>
+                <div class="form-group"><label>What did you do about it?</label><input type="text" id="rev_prob_act"></div>
+                
+                <hr style="border: 0.5px solid #ccc; margin: 15px 0;">
+                
+                <div class="form-group"><label>New member of staff?</label><select id="rev_staff"><option value="false">No</option><option value="true">Yes</option></select></div>
+                <div class="form-group"><label>Were they trained?</label><select id="rev_trained"><option value="false">No</option><option value="true">Yes</option></select></div>
+                
+                <div class="form-group"><label>Changed menu?</label><select id="rev_menu"><option value="false">No</option><option value="true">Yes</option></select></div>
+                <div class="form-group"><label>Reviewed safe methods?</label><select id="rev_methods"><option value="false">No</option><option value="true">Yes</option></select></div>
+                <div class="form-group"><label>Any method changes?</label><input type="text" id="rev_meth_change"></div>
+                
+                <div class="form-group"><label>Changed supplier/new ingredients?</label><select id="rev_supp"><option value="false">No</option><option value="true">Yes</option></select></div>
+                <div class="form-group"><label>Affect safe methods?</label><input type="text" id="rev_supp_eff"></div>
+                
+                <div class="form-group"><label>Using new/different equipment?</label><select id="rev_equip"><option value="false">No</option><option value="true">Yes</option></select></div>
+                <div class="form-group"><label>Affect safe methods?</label><input type="text" id="rev_equip_eff"></div>
+                
+                <div class="form-group"><label>Other changes:</label><input type="text" id="rev_other"></div>
+                <div class="form-group"><label>Manager Signature:</label><input type="text" id="rev_sig" required></div>
+                
+                <button type="submit" style="background: #17a2b8;">Save 4-Weekly Review</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- EHO PDF Export -->
+    <div class="section" style="border-bottom: none;">
+        <h2>Inspector Audit Export</h2>
+        <button class="btn-export" onclick="window.location.href='/api/export-pdf'">Download Full EHO PDF Report</button>
     </div>
 </div>
 
@@ -77,65 +111,68 @@
     async function loadTodayData() {
         const res = await fetch('/api/today');
         const data = await res.json();
-        
         currentDiaryId = data.diary.id;
         document.getElementById('today-date').innerText = `Date: ${data.diary.date}`;
         document.getElementById('opening_checks').checked = data.diary.opening_checks_done;
         document.getElementById('closing_checks').checked = data.diary.closing_checks_done;
-        
-        if(data.diary.manager_signature) {
-            document.getElementById('signature').value = data.diary.manager_signature;
-            document.getElementById('sign-off-status').innerText = `Signed off by ${data.diary.manager_signature}`;
-        }
+        if(data.diary.manager_signature) document.getElementById('signature').value = data.diary.manager_signature;
 
         const tempList = document.getElementById('temp-list');
         tempList.innerHTML = '';
         data.temps.forEach(t => {
             const li = document.createElement('li');
-            let alertText = "";
-            if (t.appliance_name.toLowerCase().includes("fridge") && t.temperature > 8) {
-                alertText = " <span class='warning'>[CRITICAL: Above Legal Limit 8°C]</span>";
-            }
-            li.innerHTML = `<strong>${t.appliance_name}</strong>: ${t.temperature}°C (Logged by ${t.checked_by})${alertText}`;
+            li.innerHTML = `<strong>${t.appliance_name}</strong>: ${t.temperature}°C (Logged by ${t.checked_by})`;
             tempList.appendChild(li);
         });
     }
 
     async function toggleCheck(field, value) {
-        await fetch('/api/update-checks', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id: currentDiaryId, field, value })
-        });
+        await fetch('/api/update-checks', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: currentDiaryId, field, value }) });
     }
 
     async function logTemperature(e) {
         e.preventDefault();
-        const appliance_name = document.getElementById('appliance').value;
-        const temperature = parseFloat(document.getElementById('temp').value);
-        const checked_by = document.getElementById('staff').value;
-
-        await fetch('/api/log-temp', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ diary_id: currentDiaryId, appliance_name, temperature, checked_by })
+        await fetch('/api/log-temp', { 
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, 
+            body: JSON.stringify({ diary_id: currentDiaryId, appliance_name: document.getElementById('appliance').value, temperature: parseFloat(document.getElementById('temp').value), checked_by: document.getElementById('staff').value }) 
         });
-
-        document.getElementById('appliance').value = '';
-        document.getElementById('temp').value = '';
+        document.getElementById('appliance').value = ''; document.getElementById('temp').value = '';
         loadTodayData();
     }
 
     async function signOffDay() {
-        const signature = document.getElementById('signature').value;
-        if(!signature) return alert("Please type your signature name.");
-        
-        await fetch('/api/sign-off', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id: currentDiaryId, signature })
-        });
-        loadTodayData();
+        const sig = document.getElementById('signature').value;
+        if(!sig) return alert("Please sign.");
+        await fetch('/api/sign-off', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: currentDiaryId, signature: sig }) });
+        alert("Day Saved!");
+    }
+
+    async function submitReview(e) {
+        e.preventDefault();
+        const payload = {
+            serious_problem: document.getElementById('rev_problem').value === 'true',
+            problem_details: document.getElementById('rev_prob_det').value,
+            problem_action: document.getElementById('rev_prob_act').value,
+            new_staff: document.getElementById('rev_staff').value === 'true',
+            staff_trained: document.getElementById('rev_trained').value === 'true',
+            menu_changed: document.getElementById('rev_menu').value === 'true',
+            methods_reviewed: document.getElementById('rev_methods').value === 'true',
+            method_changes: document.getElementById('rev_meth_change').value,
+            new_suppliers: document.getElementById('rev_supp').value === 'true',
+            supplier_effects: document.getElementById('rev_supp_eff').value,
+            new_equipment: document.getElementById('rev_equip').value === 'true',
+            equipment_effects: document.getElementById('rev_equip_eff').value,
+            other_changes: document.getElementById('rev_other').value,
+            manager_signature: document.getElementById('rev_sig').value
+        };
+
+        const res = await fetch('/api/save-review', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        if(res.ok) {
+            alert("4-Weekly Review Saved Successfully!");
+            document.getElementById('review-form').classList.add('hidden');
+        } else {
+            alert("Error saving review.");
+        }
     }
 
     loadTodayData();
