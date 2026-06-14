@@ -16,6 +16,8 @@
         input[type="text"], input[type="number"], select, textarea { width: 100%; padding: 10px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem; }
         button { background: #0070f3; color: white; border: none; padding: 12px; width: 100%; border-radius: 4px; font-size: 1rem; font-weight: bold; cursor: pointer; }
         button:hover { background: #0051a8; }
+        .btn-nav { background: #6f42c1; margin-bottom: 15px; }
+        .btn-nav:hover { background: #59339d; }
         .btn-export { background: #28a745; margin-top: 10px; }
         .btn-export:hover { background: #218838; }
         .btn-secondary { background: #6c757d; margin-top: 10px; }
@@ -29,20 +31,28 @@
 
 <div class="container">
     <h1>SFBB Compliance Log</h1>
+    <button class="btn-nav" onclick="window.location.href='/cleaning.html'">📋 View Cleaning Schedule</button>
     <p id="today-date" style="font-weight: bold; color: #666;"></p>
 
-    <!-- Daily Verification -->
     <div class="section">
         <h2>Daily Verification</h2>
         <div class="check-item"><input type="checkbox" id="opening_checks" onchange="toggleCheck('opening_checks_done', this.checked)"><label for="opening_checks">Opening Checks Completed</label></div>
         <div class="check-item"><input type="checkbox" id="closing_checks" onchange="toggleCheck('closing_checks_done', this.checked)"><label for="closing_checks">Closing Checks Completed</label></div>
     </div>
 
-    <!-- Temperature Logging -->
     <div class="section">
         <h2>Temperature Monitoring</h2>
         <form id="temp-form" onsubmit="logTemperature(event)">
-            <div class="form-group"><label>Appliance / Food Item</label><input type="text" id="appliance" required></div>
+            <div class="form-group">
+                <label for="appliance">Appliance / Food Item</label>
+                <select id="appliance" required>
+                    <option value="" disabled selected>Select an option...</option>
+                    <option value="Trailer Fridge">Trailer Fridge</option>
+                    <option value="Trailer Freezer">Trailer Freezer</option>
+                    <option value="Beef Patty">Beef Patty</option>
+                    <option value="Chicken Strips">Chicken Strips</option>
+                </select>
+            </div>
             <div class="form-group"><label>Recorded Temp (°C)</label><input type="number" step="0.1" id="temp" required></div>
             <div class="form-group"><label>Staff Initials</label><input type="text" id="staff" required></div>
             <button type="submit">Save Reading</button>
@@ -51,14 +61,6 @@
         <ul id="temp-list"></ul>
     </div>
 
-    <!-- Daily Sign-off -->
-    <div class="section">
-        <h2>Daily Sign-off</h2>
-        <div class="form-group"><input type="text" id="signature" placeholder="Manager Signature"></div>
-        <button onclick="signOffDay()">Complete & Archive Day</button>
-    </div>
-
-    <!-- 4-Weekly Review Section -->
     <div class="section">
         <h2>Management & Review</h2>
         <button class="btn-secondary" onclick="document.getElementById('review-form').classList.toggle('hidden')">Open 4-Weekly Review Form</button>
@@ -98,7 +100,6 @@
         </div>
     </div>
 
-    <!-- EHO PDF Export -->
     <div class="section" style="border-bottom: none;">
         <h2>Inspector Audit Export</h2>
         <button class="btn-export" onclick="window.location.href='/api/export-pdf'">Download Full EHO PDF Report</button>
@@ -115,7 +116,6 @@
         document.getElementById('today-date').innerText = `Date: ${data.diary.date}`;
         document.getElementById('opening_checks').checked = data.diary.opening_checks_done;
         document.getElementById('closing_checks').checked = data.diary.closing_checks_done;
-        if(data.diary.manager_signature) document.getElementById('signature').value = data.diary.manager_signature;
 
         const tempList = document.getElementById('temp-list');
         tempList.innerHTML = '';
@@ -138,13 +138,6 @@
         });
         document.getElementById('appliance').value = ''; document.getElementById('temp').value = '';
         loadTodayData();
-    }
-
-    async function signOffDay() {
-        const sig = document.getElementById('signature').value;
-        if(!sig) return alert("Please sign.");
-        await fetch('/api/sign-off', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: currentDiaryId, signature: sig }) });
-        alert("Day Saved!");
     }
 
     async function submitReview(e) {
