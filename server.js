@@ -134,6 +134,91 @@ app.get('/api/export-pdf', async (req, res) => {
     doc.end();
 });
 
+// --- ALLERGEN MATRIX ENDPOINTS ---
+app.get('/api/allergens', async (req, res) => {
+    const { data, error } = await supabase.from('allergens_matrix').select('*').order('dish_name', { ascending: true });
+    if (error) return res.status(500).json({ error: error.message }); res.json(data || []);
+});
+
+app.post('/api/allergens', async (req, res) => {
+    const { data, error } = await supabase.from('allergens_matrix').insert([req.body]).select().single();
+    if (error) return res.status(500).json({ error: error.message }); res.json(data);
+});
+
+app.delete('/api/allergens/:id', async (req, res) => {
+    const { error } = await supabase.from('allergens_matrix').delete().eq('id', req.params.id);
+    if (error) return res.status(500).json({ error: error.message }); res.json({ success: true });
+});
+
+app.get('/api/allergen-signoff', async (req, res) => {
+    const { data, error } = await supabase.from('allergen_signoff').select('*').order('created_at', { ascending: false }).limit(1).single();
+    res.json(data || null);
+});
+
+app.post('/api/allergen-signoff', async (req, res) => {
+    const { reviewed_by, review_date } = req.body;
+    const { data, error } = await supabase.from('allergen_signoff').insert([{ reviewed_by, review_date }]).select().single();
+    if (error) return res.status(500).json({ error: error.message }); res.json(data);
+});
+
+// Full Allergen PDF Export (Landscape)
+app.get('/api/export-allergen-pdf', async (req, res) => {
+    const { data: dishes } = await supabase.from('allergens_matrix').select('*').order('dish_name', { ascending: true });
+    const { data: signoff } = await supabase.from('allergen_signoff').select('*').order('created_at', { ascending: false }).limit(1).single();
+
+    // Landscape orientation to fit 15 columns
+    const doc = new PDFDocument({ margin: 30, size: 'A4', layout: 'landscape' });
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', 'attachment; filename=StreetFeast_Allergen_Matrix.pdf');
+    doc.pipe(res);
+
+    doc.fontSize(18).font('Helvetica-Bold').text('DISHES AND THEIR ALLERGEN CONTENT - Street Feast', { align: 'left' });
+    doc.moveDown(1.5);
+
+    const startX = 30;
+    let currentY = doc.y;
+    const dishWidth = 140;
+    const colWidth = 45;
+    const keys = ['celery', 'cereals', 'crustaceans', 'eggs', 'fish', 'lupin', 'milk', 'molluscs', 'mustard', 'nuts', 'peanuts', 'sesame', 'soya', 'sulphur'];
+    const labels = ['Celery', 'Gluten', 'Crust.', 'Eggs', 'Fish', 'Lupin', 'Milk', 'Molluscs', 'Mustard', 'Nuts', 'Peanuts', 'Sesame', 'Soya', 'Sulphur'];
+
+    // Draw Headers
+    doc.fontSize(9).font('Helvetica-Bold');
+    doc.text('DISHES', startX, currentY, { width: dishWidth });
+    labels.forEach((lbl, i) => {
+        doc.text(lbl, startX + dishWidth + (i * colWidth), currentY, { width: colWidth, align: 'center' });
+    });
+    
+    currentY += 15;
+    doc.moveTo(startX, currentY).lineTo(810, currentY).stroke('#00a896');
+    currentY += 10;
+
+    // Draw Rows
+    doc.font('Helvetica');
+    if(dishes) {
+        dishes.forEach(dish => {
+            doc.text(dish.dish_name, startX, currentY, { width: dishWidth });
+            keys.forEach((key, i) => {
+                const mark = dish[key] ? 'X' : '';
+                doc.text(mark, startX + dishWidth + (i * colWidth), currentY, { width: colWidth, align: 'center' });
+            });
+            currentY += 15;
+            doc.moveTo(startX, currentY).lineTo(810, currentY).stroke('#dddddd');
+            currentY += 10;
+
+            if (currentY > 500) { doc.addPage(); currentY = 40; } // New page if full
+        });
+    }
+
+    doc.moveDown(2);
+    currentY += 30;
+    doc.font('Helvetica-Bold').fontSize(12);
+    doc.text(`Review Date: ${signoff ? signoff.review_date : 'Not signed'}`, startX, currentY);
+    doc.text(`Reviewed by: ${signoff ? signoff.reviewed_by : 'Not signed'}`, startX + 300, currentY);
+
+    doc.end();
+});
+
 app.listen(PORT, () => {
     console.log(`SFBB Compliance app running on port ${PORT}`);
 });
