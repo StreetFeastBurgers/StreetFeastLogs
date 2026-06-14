@@ -18,6 +18,8 @@
         button:hover { background: #0051a8; }
         .btn-nav { background: #6f42c1; margin-bottom: 15px; }
         .btn-nav:hover { background: #59339d; }
+        .btn-allergen { background: #e83e8c; margin-bottom: 15px; }
+        .btn-allergen:hover { background: #c23375; }
         .btn-export { background: #28a745; margin-top: 10px; }
         .btn-export:hover { background: #218838; }
         .btn-secondary { background: #6c757d; margin-top: 10px; }
@@ -32,14 +34,18 @@
 <div class="container">
     <h1>SFBB Compliance Log</h1>
     <button class="btn-nav" onclick="window.location.href='/cleaning.html'">📋 View Cleaning Schedule</button>
+    <button class="btn-allergen" onclick="window.location.href='/allergens.html'">🥜 View Allergen Matrix</button>
+    
     <p id="today-date" style="font-weight: bold; color: #666;"></p>
 
+    <!-- Daily Verification -->
     <div class="section">
         <h2>Daily Verification</h2>
         <div class="check-item"><input type="checkbox" id="opening_checks" onchange="toggleCheck('opening_checks_done', this.checked)"><label for="opening_checks">Opening Checks Completed</label></div>
         <div class="check-item"><input type="checkbox" id="closing_checks" onchange="toggleCheck('closing_checks_done', this.checked)"><label for="closing_checks">Closing Checks Completed</label></div>
     </div>
 
+    <!-- Temperature Logging -->
     <div class="section">
         <h2>Temperature Monitoring</h2>
         <form id="temp-form" onsubmit="logTemperature(event)">
@@ -61,6 +67,7 @@
         <ul id="temp-list"></ul>
     </div>
 
+    <!-- 4-Weekly Review Section -->
     <div class="section">
         <h2>Management & Review</h2>
         <button class="btn-secondary" onclick="document.getElementById('review-form').classList.toggle('hidden')">Open 4-Weekly Review Form</button>
@@ -100,6 +107,7 @@
         </div>
     </div>
 
+    <!-- EHO PDF Export -->
     <div class="section" style="border-bottom: none;">
         <h2>Inspector Audit Export</h2>
         <button class="btn-export" onclick="window.location.href='/api/export-pdf'">Download Full EHO PDF Report</button>
